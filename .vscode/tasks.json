@@ -1,0 +1,122 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "CS2 Callouts: Run Pipeline (de_mirage)",
+            "type": "shell",
+            "command": "python",
+            "args": ["-m", "cs2_callouts", "pipeline", "--map", "de_mirage"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "detail": "Extract and process callouts for de_mirage"
+        },
+        {
+            "label": "CS2 Callouts: Generate Radar Visualization",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m", "cs2_callouts", "visualize",
+                "--json", "out/de_mirage_callouts.json",
+                "--radar", "C:\\Users\\mwrid\\.awpy\\maps\\de_mirage.png",
+                "--map-data", "C:\\Users\\mwrid\\.awpy\\maps\\map-data.json",
+                "--out", "out/de_mirage_radar.png"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Generate radar overlay visualization",
+            "dependsOn": "CS2 Callouts: Run Pipeline (de_mirage)"
+        },
+        {
+            "label": "CS2 Callouts: Clean All",
+            "type": "shell",
+            "command": "python",
+            "args": ["-m", "cs2_callouts", "clean"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Clean all generated files and caches"
+        },
+        {
+            "label": "CS2 Callouts: Clean (Preview)",
+            "type": "shell",
+            "command": "python",
+            "args": ["-m", "cs2_callouts", "clean", "--dry-run"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Preview what would be cleaned (safe)"
+        },
+        {
+            "label": "CS2 Callouts: Setup Tools",
+            "type": "shell",
+            "command": "python",
+            "args": ["-m", "cs2_callouts", "setup"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Download and setup VRF CLI tools"
+        },
+        {
+            "label": "Install Python Dependencies",
+            "type": "shell",
+            "command": "pip",
+            "args": ["install", "-e", "."],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Install CS2 Callouts package in development mode"
+        },
+        {
+            "label": "Run Python Tests",
+            "type": "shell",
+            "command": "python",
+            "args": ["-m", "pytest", "-v"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Run all Python tests"
+        }
+    ]
+}

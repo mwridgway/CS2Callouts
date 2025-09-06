@@ -1,0 +1,81 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "CS2 Callouts: Extract de_mirage",
+            "type": "python",
+            "request": "launch",
+            "module": "cs2_callouts",
+            "args": ["extract", "--map", "de_mirage"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {},
+            "justMyCode": false
+        },
+        {
+            "name": "CS2 Callouts: Process de_mirage",
+            "type": "python",
+            "request": "launch",
+            "module": "cs2_callouts",
+            "args": ["process", "--map", "de_mirage"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {},
+            "justMyCode": false
+        },
+        {
+            "name": "CS2 Callouts: Complete Pipeline",
+            "type": "python",
+            "request": "launch",
+            "module": "cs2_callouts",
+            "args": ["pipeline", "--map", "de_mirage"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {},
+            "justMyCode": false
+        },
+        {
+            "name": "CS2 Callouts: Visualize",
+            "type": "python",
+            "request": "launch",
+            "module": "cs2_callouts",
+            "args": [
+                "visualize",
+                "--json", "out/de_mirage_callouts.json",
+                "--out", "out/debug_visualization.png"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {},
+            "justMyCode": false
+        },
+        {
+            "name": "CS2 Callouts: Visualize with Radar",
+            "type": "python",
+            "request": "launch",
+            "module": "cs2_callouts",
+            "args": [
+                "visualize",
+                "--json", "out/de_mirage_callouts.json",
+                "--radar", "C:\\Users\\mwrid\\.awpy\\maps\\de_mirage.png",
+                "--map-data", "C:\\Users\\mwrid\\.awpy\\maps\\map-data.json",
+                "--out", "out/debug_radar.png"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {},
+            "justMyCode": false
+        },
+        {
+            "name": "CS2 Callouts: Clean (Dry Run)",
+            "type": "python",
+            "request": "launch",
+            "module": "cs2_callouts",
+            "args": ["clean", "--dry-run"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {},
+            "justMyCode": false
+        }
+    ]
+}

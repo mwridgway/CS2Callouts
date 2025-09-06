@@ -1,0 +1,100 @@
+{
+    // Dark theme configuration
+    "workbench.colorTheme": "Dark+ (default dark)",
+
+    // Alternative dark themes (uncomment to try)
+    // "workbench.colorTheme": "Dark Modern",
+    // "workbench.colorTheme": "GitHub Dark",
+    // "workbench.colorTheme": "Monokai",
+    // "workbench.colorTheme": "One Dark Pro",
+
+    // Additional dark mode settings
+    "workbench.preferredDarkColorTheme": "Dark+ (default dark)",
+    "workbench.preferredLightColorTheme": "Default Light+",
+    "window.autoDetectColorScheme": false,
+
+    // Editor appearance enhancements
+    "editor.fontFamily": "'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace",
+    "editor.fontLigatures": true,
+    "editor.fontSize": 14,
+    "editor.lineHeight": 1.5,
+    "editor.cursorBlinking": "smooth",
+    "editor.cursorSmoothCaretAnimation": "on",
+
+    // Syntax highlighting
+    "editor.semanticHighlighting.enabled": true,
+    "editor.bracketPairColorization.enabled": true,
+    "editor.guides.bracketPairs": "active",
+
+    // Terminal dark theme
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+    "terminal.integrated.fontFamily": "'Cascadia Code', 'Consolas', monospace",
+    "terminal.integrated.fontSize": 13,
+
+    // File explorer
+    "workbench.tree.indent": 16,
+    "explorer.compactFolders": false,
+
+    // Python-specific settings for CS2 Callouts project
+    "python.defaultInterpreterPath": "python",
+    "python.formatting.provider": "black",
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+
+    // File associations for CS2 project
+    "files.associations": {
+        "*.vpk": "plaintext",
+        "*.vmap": "plaintext",
+        "*.vmdl": "plaintext",
+        "*.vents": "plaintext",
+        "*.nav": "plaintext",
+        "callouts_found.json": "jsonc"
+    },
+
+    // Minimap and scrolling
+    "editor.minimap.enabled": true,
+    "editor.minimap.side": "right",
+    "editor.scrollBeyondLastLine": false,
+
+    // Whitespace and formatting
+    "editor.renderWhitespace": "selection",
+    "editor.trimAutoWhitespace": true,
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+
+    // Git integration
+    "git.enableSmartCommit": true,
+    "git.confirmSync": false,
+    "git.autofetch": true,
+
+    // Performance optimizations
+    "extensions.autoUpdate": false,
+    "telemetry.telemetryLevel": "off",
+
+    // Custom color overrides for CS2 Callouts theme
+    "workbench.colorCustomizations": {
+        "[Dark+ (default dark)]": {
+            "editor.background": "#0d1117",
+            "sideBar.background": "#161b22",
+            "activityBar.background": "#21262d",
+            "panel.background": "#161b22",
+            "terminal.background": "#0d1117",
+            "statusBar.background": "#21262d",
+            "titleBar.activeBackground": "#21262d"
+        }
+    },
+
+    // Token color customizations for better Python syntax highlighting
+    "editor.tokenColorCustomizations": {
+        "[Dark+ (default dark)]": {
+            "comments": "#6a737d",
+            "strings": "#79b8ff",
+            "keywords": "#f97583",
+            "functions": "#b392f0",
+            "variables": "#e1e4e8",
+            "numbers": "#79b8ff",
+            "types": "#ffab70"
+        }
+    }
+}
