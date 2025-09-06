@@ -125,22 +125,26 @@ def ensure_vrf_cli(cli_dir: Path, explicit_url: str = "", version: str = "") -> 
     if cli_exe.exists():
         return str(cli_exe)
     
-    # Build download URLs
+    # Build download URLs with correct asset names
     urls = []
     if explicit_url:
         urls.append(explicit_url)
     if version:
-        urls.extend([
-            f"https://github.com/ValveResourceFormat/ValveResourceFormat/releases/download/{version}/cli-{platform_suffix}.zip",
-            f"https://github.com/ValveResourceFormat/ValveResourceFormat/releases/download/{version}/cli-win-x64.zip"
-        ])
+        # Use exact asset names for versioned downloads
+        if platform.system() == "Windows":
+            urls.append(f"https://github.com/ValveResourceFormat/ValveResourceFormat/releases/download/{version}/cli-windows-x64.zip")
+        elif platform.system() == "Linux":
+            urls.append(f"https://github.com/ValveResourceFormat/ValveResourceFormat/releases/download/{version}/cli-linux-x64.zip")
+        else:  # macOS
+            urls.append(f"https://github.com/ValveResourceFormat/ValveResourceFormat/releases/download/{version}/cli-macos-x64.zip")
     
-    # Fallback to latest
-    urls.extend([
-        f"https://github.com/ValveResourceFormat/ValveResourceFormat/releases/latest/download/cli-{platform_suffix}.zip",
-        f"https://github.com/ValveResourceFormat/ValveResourceFormat/releases/latest/download/cli-windows-x64.zip",
-        f"https://github.com/ValveResourceFormat/ValveResourceFormat/releases/latest/download/cli-win-x64.zip"
-    ])
+    # Fallback to latest with correct asset names
+    if platform.system() == "Windows":
+        urls.append("https://github.com/ValveResourceFormat/ValveResourceFormat/releases/latest/download/cli-windows-x64.zip")
+    elif platform.system() == "Linux":
+        urls.append("https://github.com/ValveResourceFormat/ValveResourceFormat/releases/latest/download/cli-linux-x64.zip")
+    else:  # macOS
+        urls.append("https://github.com/ValveResourceFormat/ValveResourceFormat/releases/latest/download/cli-macos-x64.zip")
     
     # Remove duplicates while preserving order
     urls = list(dict.fromkeys(urls))
@@ -148,13 +152,21 @@ def ensure_vrf_cli(cli_dir: Path, explicit_url: str = "", version: str = "") -> 
     for url in urls:
         try:
             info(f"Downloading VRF CLI from {url}")
-            with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp_file:
-                urlretrieve(url, tmp_file.name)
+            # Use a more robust temp file approach
+            import uuid
+            temp_filename = f"vrf_cli_{uuid.uuid4().hex[:8]}.zip"
+            temp_path = Path(tempfile.gettempdir()) / temp_filename
+            
+            try:
+                urlretrieve(url, str(temp_path))
                 
-                with zipfile.ZipFile(tmp_file.name, 'r') as zip_ref:
+                with zipfile.ZipFile(str(temp_path), 'r') as zip_ref:
                     zip_ref.extractall(cli_dir)
                 
-                Path(tmp_file.name).unlink()
+            finally:
+                # Ensure temp file is removed even if extraction fails
+                if temp_path.exists():
+                    temp_path.unlink()
             
             # Look for the executable
             if cli_exe.exists():

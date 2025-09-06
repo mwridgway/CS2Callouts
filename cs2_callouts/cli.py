@@ -112,11 +112,32 @@ def pipeline(map_name: str, vpk_path: str, gltf_format: str):
     # Step 1: Extract
     click.echo("Step 1: Extracting callout data...")
     ctx = click.get_current_context()
-    ctx.invoke(extract, vpk_path=vpk_path, map_name=map_name, out_root="export", gltf_format=gltf_format)
+    try:
+        result = ctx.invoke(extract, vpk_path=vpk_path, map_name=map_name, out_root="export", gltf_format=gltf_format)
+        if result and result != 0:
+            click.echo("❌ Extraction failed, stopping pipeline.")
+            return result
+    except Exception as e:
+        click.echo(f"❌ Extraction failed: {e}")
+        return 1
+    
+    # Check if extraction produced the required file
+    from pathlib import Path
+    callouts_file = Path("export/maps") / map_name / "report/callouts_found.json"
+    if not callouts_file.exists():
+        click.echo("❌ Extraction did not produce callouts_found.json, stopping pipeline.")
+        return 1
     
     # Step 2: Process
     click.echo("Step 2: Processing polygons...")
-    ctx.invoke(process, map_name=map_name, callouts_json=None, models_root="export/models", out_path=None, rotation_order="auto")
+    try:
+        result = ctx.invoke(process, map_name=map_name, callouts_json=None, models_root="export/models", out_path=None, rotation_order="auto")
+        if result and result != 0:
+            click.echo("❌ Processing failed.")
+            return result
+    except Exception as e:
+        click.echo(f"❌ Processing failed: {e}")
+        return 1
     
     click.echo(f"✅ Pipeline complete!")
 
@@ -317,54 +338,93 @@ def visualize(json_path: str, radar: str, map_data: str, out_path: str, labels: 
 
     fig, ax = plt.subplots(figsize=(12, 12))
     
-    if radar:
+    if radar and map_metadata:
+        from PIL import Image
+        
+        # Use awpy-style coordinate transformation
+        scale = map_metadata['scale']
+        pos_x = map_metadata['pos_x']
+        pos_y = map_metadata['pos_y']
+        
+        # Transform callout coordinates to radar pixel coordinates using awpy's method
+        def game_to_pixel_x(game_x):
+            return (game_x - pos_x) / scale
+            
+        def game_to_pixel_y(game_y):
+            return (pos_y - game_y) / scale  # Y is inverted in awpy
+        
+        # Transform all callout coordinates to pixel coordinates
+        pixel_xs = []
+        pixel_ys = []
+        for poly in polys:
+            for x, y in poly:
+                pixel_x = game_to_pixel_x(float(x))
+                pixel_y = game_to_pixel_y(float(y))
+                pixel_xs.append(pixel_x)
+                pixel_ys.append(pixel_y)
+        
+        if pixel_xs and pixel_ys:
+            pixel_min_x, pixel_max_x = min(pixel_xs), max(pixel_xs)
+            pixel_min_y, pixel_max_y = min(pixel_ys), max(pixel_ys)
+            
+            # Load radar image and set it to cover the standard 1024x1024 pixel space
+            img = Image.open(radar)
+            radar_width, radar_height = img.size
+            
+            # Radar image maps to pixel coordinates (0,0) to (radar_width, radar_height)
+            ax.imshow(img, extent=[0, radar_width, 0, radar_height], alpha=0.7, origin='lower')
+            
+            # Set plot bounds to show the callouts in pixel coordinates with some padding
+            padding = 50
+            plot_min_x = max(0, pixel_min_x - padding)
+            plot_max_x = min(radar_width, pixel_max_x + padding)
+            plot_min_y = max(0, pixel_min_y - padding)
+            plot_max_y = min(radar_height, pixel_max_y + padding)
+            
+            click.echo(f"Transformed to pixel coords: X={pixel_min_x:.1f} to {pixel_max_x:.1f}, Y={pixel_min_y:.1f} to {pixel_max_y:.1f}")
+        else:
+            # Fallback to full radar
+            plot_min_x, plot_max_x = 0, img.size[0]
+            plot_min_y, plot_max_y = 0, img.size[1]
+            ax.imshow(img, extent=[plot_min_x, plot_max_x, plot_min_y, plot_max_y], alpha=0.7)
+    elif radar:
         from PIL import Image
         img = Image.open(radar)
-        
-        if map_metadata:
-            # Use precise metadata for radar positioning
-            scale = map_metadata['scale']
-            pos_x = map_metadata['pos_x']
-            pos_y = map_metadata['pos_y']
-            
-            # Convert radar pixel coordinates to game world coordinates
-            radar_width, radar_height = img.size
-            radar_world_width = radar_width / scale
-            radar_world_height = radar_height / scale
-            
-            # Calculate radar bounds in world coordinates
-            radar_min_x = pos_x
-            radar_max_x = pos_x + radar_world_width
-            radar_min_y = pos_y
-            radar_max_y = pos_y + radar_world_height
-            
-            # Set plot bounds to match radar exactly
-            ax.imshow(img, extent=[radar_min_x, radar_max_x, radar_min_y, radar_max_y], alpha=0.7, origin='upper')
-            ax.set_xlim(radar_min_x, radar_max_x)
-            ax.set_ylim(radar_min_y, radar_max_y)
-        else:
-            # Fallback: map radar to callout bounds
-            ax.imshow(img, extent=[min_x, max_x, min_y, max_y], alpha=0.7)
-            ax.set_xlim(min_x, max_x)
-            ax.set_ylim(min_y, max_y)
+        # Fallback: map radar to callout bounds
+        plot_min_x, plot_max_x = min_x, max_x
+        plot_min_y, plot_max_y = min_y, max_y
+        ax.imshow(img, extent=[plot_min_x, plot_max_x, plot_min_y, plot_max_y], alpha=0.7)
     else:
         # No radar, just use callout bounds
-        ax.set_xlim(min_x, max_x)
-        ax.set_ylim(min_y, max_y)
+        plot_min_x, plot_max_x = min_x, max_x
+        plot_min_y, plot_max_y = min_y, max_y
 
     for it, poly in zip(items, polys):
         if not poly:
             continue
         name = it.get("name") or it.get("placename") or "?"
         color = _color_for_name(name)
-        patch = MplPolygon(poly, closed=True, facecolor=color + (alpha,), edgecolor=color, linewidth=linewidth)
+        
+        # Transform polygon coordinates if we have map metadata
+        if radar and map_metadata:
+            # Transform to pixel coordinates
+            pixel_poly = []
+            for x, y in poly:
+                pixel_x = (float(x) - map_metadata['pos_x']) / map_metadata['scale']
+                pixel_y = (map_metadata['pos_y'] - float(y)) / map_metadata['scale']  # Y inverted
+                pixel_poly.append([pixel_x, pixel_y])
+            poly_to_plot = pixel_poly
+        else:
+            poly_to_plot = poly
+            
+        patch = MplPolygon(poly_to_plot, closed=True, facecolor=color + (alpha,), edgecolor=color, linewidth=linewidth)
         ax.add_patch(patch)
         if labels:
-            cx, cy = _centroid(poly)
+            cx, cy = _centroid(poly_to_plot)
             ax.text(cx, cy, name, fontsize=7, color="black", ha="center", va="center", bbox=dict(boxstyle="round,pad=0.1", fc="white", ec="none", alpha=0.6))
 
-    ax.set_xlim(min_x, max_x)
-    ax.set_ylim(min_y, max_y)
+    ax.set_xlim(plot_min_x, plot_max_x)
+    ax.set_ylim(plot_min_y, plot_max_y)
     ax.set_aspect("equal", adjustable="box")
     if invert_y:
         ax.invert_yaxis()
