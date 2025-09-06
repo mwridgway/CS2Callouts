@@ -36,7 +36,8 @@ def _to_floats(seq) -> List[float]:
 
 def read_callouts_json(path: str | Path) -> List[Callout]:
     p = Path(path)
-    data = json.loads(p.read_text(encoding="utf-8"))
+    # Some exporters write UTF-8 with BOM; be tolerant by using utf-8-sig
+    data = json.loads(p.read_text(encoding="utf-8-sig"))
     out: List[Callout] = []
     if isinstance(data, dict):
         items = data.get("callouts") or data.get("items") or data.get("data") or []
@@ -78,11 +79,19 @@ def build_model_index(models_root: str | Path) -> Dict[str, Path]:
 
 def resolve_model_file(model_path: str, index: Dict[str, Path]) -> Optional[Path]:
     mid = _normalize_model_id(model_path)
+    # Prefer physics mesh if available
+    mid_phys = f"{mid}_physics"
+    if mid_phys in index:
+        return index[mid_phys]
     if mid in index:
         return index[mid]
-    # Try matching by suffix
+    # Try matching by suffix; prefer *_physics
+    suffix = Path(mid).name
+    phys_candidates = [(k, v) for k, v in index.items() if k.endswith(f"{suffix}_physics")]
+    if phys_candidates:
+        return phys_candidates[0][1]
     for key, fp in index.items():
-        if key.endswith(Path(mid).name):
+        if key.endswith(suffix):
             return fp
     return None
 
@@ -172,4 +181,3 @@ def write_json(data: Dict, out_path: str | Path, pretty: bool = True) -> None:
         p.write_text(json.dumps(data, indent=2), encoding="utf-8")
     else:
         p.write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
-

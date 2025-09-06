@@ -178,7 +178,7 @@ function Decompile-DirectFiles([string]$cli, [string[]]$files, [string]$mapName,
 
 function Parse-CalloutModels([string]$searchRoot) {
     # Robust scanner for decompiled VMAP/VENTS text. Aggregates fields per block.
-    $files = Get-ChildItem -Path (Join-Path $searchRoot '*') -Recurse -Include *.vmap,*.vents,*.txt -File -ErrorAction SilentlyContinue
+    $files = Get-ChildItem -Path $searchRoot -Recurse -Include *.vmap,*.vents,*.txt -File -ErrorAction SilentlyContinue
     if (-not $files) { Write-Warn "No text files found under $searchRoot"; return @() }
     $results = New-Object System.Collections.Generic.List[object]
 

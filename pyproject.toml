@@ -1,0 +1,28 @@
+[
+  "build-system"
+]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cs2-callouts"
+version = "0.1.0"
+description = "Extract and transform CS2 callout polygons from decompiled assets"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "CS2Callouts" }
+]
+dependencies = [
+  "numpy",
+  "trimesh",
+  "click",
+  "matplotlib"
+]
+
+[project.scripts]
+cs2-callouts = "cs2_callouts.cli:main"
+cs2-callouts-viz = "cs2_callouts.visualize:main"
+
+[tool.setuptools]
+packages = ["cs2_callouts"]
