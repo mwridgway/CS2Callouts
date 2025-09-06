@@ -306,7 +306,21 @@ To build a similar tool from scratch, a developer would need expertise across mu
 - 3D rendering pipelines and coordinate transformations
 - Understanding of game development workflows
 
-This project represents the intersection of **game reverse engineering**, **3D mathematics**, **data processing**, **coordinate system analysis**, and **ecosystem integration** - requiring both broad technical knowledge and deep domain expertise in Counter-Strike 2's architecture.
+## 🚀 Development Roadmap
+
+**Current Status**: Phase 1 Complete ✅ (de_mirage extraction with perfect radar alignment)  
+**Next Phase**: Production enhancement and multi-map support
+
+### **Immediate Priorities**
+- 🎨 **Polygon area rendering** - Show actual callout coverage zones, not just origin points
+- 📦 **Enhanced export system** - Multiple formats (JSON, CSV, awpy) for external project integration  
+- 🗺️ **Multi-map automation** - Batch processing for all Active Duty maps
+- 📸 **Documentation with examples** - Visual guides and integration examples
+- 🔧 **GitHub Actions CI/CD** - Automated builds and releases
+
+See **[TODO.md](TODO.md)** for the complete development roadmap with detailed implementation plans.
+
+---
 
 ## 📁 Project Structure
 
