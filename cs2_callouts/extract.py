@@ -361,13 +361,25 @@ def export_models(cli_path: str, vpk_paths: List[str], model_paths: List[str],
         success = False
         
         for vpk_path in vpk_paths:
-            try:
-                run_vrf_command(cli_path, ["-i", vpk_path, "--vpk_filepath", mp, "-o", str(out_dir), "-d", "--gltf_export_format", fmt])
+            # Try to extract the model
+            run_vrf_command(cli_path, ["-i", vpk_path, "--vpk_filepath", mp, "-o", str(out_dir), "-d", "--gltf_export_format", fmt])
+            
+            # Check if files were actually created
+            model_name = Path(mp).stem
+            expected_files = [
+                out_dir / f"{model_name}.{fmt}",
+                out_dir / f"{model_name}_physics.{fmt}"
+            ]
+            
+            # Also check nested path structure (VRF preserves directory structure)
+            nested_path = out_dir / mp.replace('.vmdl_c', '.glb').replace('.vmdl', '.glb')
+            nested_physics_path = out_dir / mp.replace('.vmdl_c', '_physics.glb').replace('.vmdl', '_physics.glb')
+            expected_files.extend([nested_path, nested_physics_path])
+            
+            if any(f.exists() for f in expected_files):
                 exported.append(mp)
                 success = True
                 break
-            except:
-                continue
         
         if not success and fallback_dir:
             # Try local decompiled file

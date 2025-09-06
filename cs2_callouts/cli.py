@@ -66,7 +66,7 @@ def extract(vpk_path: str, map_name: str, out_root: str, gltf_format: str):
         model_paths = [c['model'] for c in callouts if c.get('model')]
         if model_paths:
             models_out = out_root_path / "models"
-            result = export_models(cli_path, [vpk_path], model_paths, models_out, gltf_format, out_map_dir)
+            result = export_models(cli_path, vpk_paths, model_paths, models_out, gltf_format, out_map_dir)
             info(f"Exported {len(result['exported'])} models")
         
         info("Extraction complete!")
@@ -248,6 +248,137 @@ def run_map(map_name: str, out_json: str, models_root: str, vpk_path: str):
     ctx.invoke(pipeline, map_name=map_name, vpk_path=vpk_path, gltf_format="glb")
     
     click.echo(click.style(f"✅ Map processing complete for {map_name}!", fg='green'))
+
+
+@cli.command()
+@click.option("--json", "json_path", required=True, type=click.Path(exists=True), help="Path to <map>_callouts.json produced by the pipeline.")
+@click.option("--radar", default=None, type=click.Path(exists=True), help="Optional radar image to draw underneath; mapped to world bounds.")
+@click.option("--map-data", default=None, type=click.Path(exists=True), help="Optional map-data.json with radar positioning metadata.")
+@click.option("--out", "out_path", default=None, type=click.Path(), help="Output image path (PNG). If omitted, shows an interactive window.")
+@click.option("--labels/--no-labels", default=True, show_default=True, help="Draw callout names at polygon centroids.")
+@click.option("--invert-y/--no-invert-y", default=False, show_default=True, help="Invert Y axis to match image pixel coordinates if needed.")
+@click.option("--alpha", default=0.35, show_default=True, help="Polygon fill alpha.")
+@click.option("--linewidth", default=1.0, show_default=True, help="Polygon edge line width.")
+def visualize(json_path: str, radar: str, map_data: str, out_path: str, labels: bool, invert_y: bool, alpha: float, linewidth: float):
+    """Generate overlay PNG (with optional radar underlay)."""
+    from .visualize import _load_output, _centroid, _color_for_name
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Polygon as MplPolygon
+    from pathlib import Path
+    import json
+    
+    data = _load_output(json_path)
+    items = data.get("callouts", [])
+    polys = [it.get("polygon_2d") or [] for it in items]
+
+    # Compute world bounds from polygons
+    xs = []
+    ys = []
+    for poly in polys:
+        for x, y in poly:
+            xs.append(float(x))
+            ys.append(float(y))
+    if not xs or not ys:
+        click.echo("No polygon data to visualize.", err=True)
+        raise SystemExit(1)
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+
+    # Load map metadata if provided
+    map_metadata = None
+    if map_data:
+        metadata_file = map_data
+    else:
+        # Try to auto-detect map-data.json in common locations
+        common_locations = [
+            "map-data.json",  # Current directory
+            "C:/Users/mwrid/.awpy/maps/map-data.json",  # User's awpy directory
+            Path.home() / ".awpy/maps/map-data.json"  # Generic user awpy directory
+        ]
+        metadata_file = None
+        for location in common_locations:
+            if Path(location).exists():
+                metadata_file = str(location)
+                break
+    
+    if metadata_file:
+        try:
+            with open(metadata_file, 'r') as f:
+                all_metadata = json.load(f)
+                # Extract map name from JSON path (e.g., "de_mirage_callouts.json" -> "de_mirage")
+                map_name = Path(json_path).stem.replace('_callouts', '')
+                map_metadata = all_metadata.get(map_name)
+                if map_metadata:
+                    click.echo(f"Using map metadata for {map_name}: scale={map_metadata['scale']}, pos_x={map_metadata['pos_x']}, pos_y={map_metadata['pos_y']}")
+                else:
+                    click.echo(f"No metadata found for {map_name} in {metadata_file}")
+        except Exception as e:
+            click.echo(f"Warning: Could not load map metadata: {e}")
+
+    fig, ax = plt.subplots(figsize=(12, 12))
+    
+    if radar:
+        from PIL import Image
+        img = Image.open(radar)
+        
+        if map_metadata:
+            # Use precise metadata for radar positioning
+            scale = map_metadata['scale']
+            pos_x = map_metadata['pos_x']
+            pos_y = map_metadata['pos_y']
+            
+            # Convert radar pixel coordinates to game world coordinates
+            radar_width, radar_height = img.size
+            radar_world_width = radar_width / scale
+            radar_world_height = radar_height / scale
+            
+            # Calculate radar bounds in world coordinates
+            radar_min_x = pos_x
+            radar_max_x = pos_x + radar_world_width
+            radar_min_y = pos_y
+            radar_max_y = pos_y + radar_world_height
+            
+            # Set plot bounds to match radar exactly
+            ax.imshow(img, extent=[radar_min_x, radar_max_x, radar_min_y, radar_max_y], alpha=0.7, origin='upper')
+            ax.set_xlim(radar_min_x, radar_max_x)
+            ax.set_ylim(radar_min_y, radar_max_y)
+        else:
+            # Fallback: map radar to callout bounds
+            ax.imshow(img, extent=[min_x, max_x, min_y, max_y], alpha=0.7)
+            ax.set_xlim(min_x, max_x)
+            ax.set_ylim(min_y, max_y)
+    else:
+        # No radar, just use callout bounds
+        ax.set_xlim(min_x, max_x)
+        ax.set_ylim(min_y, max_y)
+
+    for it, poly in zip(items, polys):
+        if not poly:
+            continue
+        name = it.get("name") or it.get("placename") or "?"
+        color = _color_for_name(name)
+        patch = MplPolygon(poly, closed=True, facecolor=color + (alpha,), edgecolor=color, linewidth=linewidth)
+        ax.add_patch(patch)
+        if labels:
+            cx, cy = _centroid(poly)
+            ax.text(cx, cy, name, fontsize=7, color="black", ha="center", va="center", bbox=dict(boxstyle="round,pad=0.1", fc="white", ec="none", alpha=0.6))
+
+    ax.set_xlim(min_x, max_x)
+    ax.set_ylim(min_y, max_y)
+    ax.set_aspect("equal", adjustable="box")
+    if invert_y:
+        ax.invert_yaxis()
+    ax.set_title(Path(json_path).stem)
+    ax.set_xlabel("X (game units)")
+    ax.set_ylabel("Y (game units)")
+    ax.grid(True, linestyle=":", linewidth=0.5, alpha=0.5)
+
+    if out_path:
+        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(out_path, dpi=200, bbox_inches="tight")
+        click.echo(f"Saved {out_path}")
+    else:
+        plt.show()
 
 
 if __name__ == "__main__":
