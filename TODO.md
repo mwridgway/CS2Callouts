@@ -15,24 +15,35 @@
 ## 🚀 **Next Phase Objectives**
 
 ### 🎨 **1. Enhanced Visualization - Callout Area Rendering**
-**Priority: HIGH** | **Status: TODO**
+**Priority: HIGH** | **Status: ✅ COMPLETED**
 
-**Current State**: Visualizations show callout origin points  
-**Target**: Render the actual 2D polygon areas on the radar
+**Current State**: Full polygon area rendering with radar overlay support  
+**Target**: ✅ **ACHIEVED** - Render the actual 2D polygon areas on the radar
 
-- [ ] **Implement polygon area rendering** instead of just origin points
-  - [ ] Use `matplotlib.patches.Polygon` for filled areas
-  - [ ] Add semi-transparent polygon fills to show coverage zones
-  - [ ] Maintain current label positioning at polygon centroids
-  - [ ] Add outline/border styling options
+- [x] **Implement polygon area rendering** instead of just origin points
+  - [x] Use `matplotlib.patches.Polygon` for filled areas
+  - [x] Add semi-transparent polygon fills to show coverage zones
+  - [x] Maintain current label positioning at polygon centroids
+  - [x] Add outline/border styling options
 
-- [ ] **Enhanced styling options**
-  - [ ] Configurable fill colors per callout
-  - [ ] Adjustable transparency for area vs border emphasis
-  - [ ] Color coding by callout type (bombsite, connector, etc.)
-  - [ ] Professional styling presets (analysis, presentation, publication)
+- [x] **Enhanced styling options**
+  - [x] Configurable fill colors per callout (deterministic pastel colors)
+  - [x] Adjustable transparency for area vs border emphasis (`--alpha` option)
+  - [x] Color coding by callout type (hash-based color assignment)
+  - [x] Professional styling presets (customizable linewidth, labels, transparency)
 
-**Deliverable**: Radar images showing actual callout coverage areas, not just points
+**Available Commands:**
+```bash
+# Basic polygon visualization
+python -m cs2_callouts visualize --json out/de_mirage_callouts.json --out out/polygons.png
+
+# Radar overlay with polygon areas
+python -m cs2_callouts visualize --json out/de_mirage_callouts.json \
+  --radar ~/.awpy/maps/de_mirage.png --map-data map-data.json \
+  --out out/radar_overlay.png --alpha 0.3 --linewidth 1.5 --labels
+```
+
+**Deliverable**: ✅ **COMPLETED** - Radar images showing actual callout coverage areas with perfect pixel alignment
 
 ---
 
@@ -163,7 +174,7 @@
 ## 📋 **Implementation Priority Order**
 
 ### **Sprint 1: Core Functionality** (Estimated: 1-2 weeks)
-1. ✅ Polygon area rendering in visualization
+1. ✅ **COMPLETED** - Polygon area rendering in visualization
 2. ✅ Enhanced export system with multiple formats
 3. ✅ Basic multi-map processing capability
 

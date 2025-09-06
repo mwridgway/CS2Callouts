@@ -280,9 +280,10 @@ def run_map(map_name: str, out_json: str, models_root: str, vpk_path: str):
 @click.option("--invert-y/--no-invert-y", default=False, show_default=True, help="Invert Y axis to match image pixel coordinates if needed.")
 @click.option("--alpha", default=0.35, show_default=True, help="Polygon fill alpha.")
 @click.option("--linewidth", default=1.0, show_default=True, help="Polygon edge line width.")
-def visualize(json_path: str, radar: str, map_data: str, out_path: str, labels: bool, invert_y: bool, alpha: float, linewidth: float):
+@click.option("--min-size", default=3.0, show_default=True, help="Minimum polygon size in pixels for visibility.")
+def visualize(json_path: str, radar: str, map_data: str, out_path: str, labels: bool, invert_y: bool, alpha: float, linewidth: float, min_size: float):
     """Generate overlay PNG (with optional radar underlay)."""
-    from .visualize import _load_output, _centroid, _color_for_name
+    from .visualize import _load_output, _centroid, _color_for_name, _ensure_minimum_polygon_size
     import matplotlib.pyplot as plt
     from matplotlib.patches import Polygon as MplPolygon
     from pathlib import Path
@@ -413,7 +414,9 @@ def visualize(json_path: str, radar: str, map_data: str, out_path: str, labels: 
                 pixel_x = (float(x) - map_metadata['pos_x']) / map_metadata['scale']
                 pixel_y = (map_metadata['pos_y'] - float(y)) / map_metadata['scale']  # Y inverted
                 pixel_poly.append([pixel_x, pixel_y])
-            poly_to_plot = pixel_poly
+            
+            # Ensure minimum polygon size for visibility
+            poly_to_plot = _ensure_minimum_polygon_size(pixel_poly, min_size=min_size)
         else:
             poly_to_plot = poly
             

@@ -24,6 +24,44 @@ def _centroid(poly: List[List[float]]) -> Tuple[float, float]:
     return (sum(x) / len(x), sum(y) / len(y))
 
 
+def _ensure_minimum_polygon_size(poly: List[List[float]], min_size: float = 3.0) -> List[List[float]]:
+    """Ensure polygon is at least min_size pixels in each dimension for visibility."""
+    if not poly:
+        return poly
+    
+    # Calculate current bounding box
+    x_coords = [pt[0] for pt in poly]
+    y_coords = [pt[1] for pt in poly]
+    min_x, max_x = min(x_coords), max(x_coords)
+    min_y, max_y = min(y_coords), max(y_coords)
+    
+    current_width = max_x - min_x
+    current_height = max_y - min_y
+    
+    # If already large enough, return as-is
+    if current_width >= min_size and current_height >= min_size:
+        return poly
+    
+    # Calculate scaling factors needed
+    scale_x = max(1.0, min_size / current_width) if current_width > 0 else 1.0
+    scale_y = max(1.0, min_size / current_height) if current_height > 0 else 1.0
+    
+    # Use uniform scaling (larger of the two) to maintain aspect ratio
+    scale = max(scale_x, scale_y)
+    
+    # Calculate centroid for scaling origin
+    cx, cy = _centroid(poly)
+    
+    # Scale polygon around its centroid
+    scaled_poly = []
+    for x, y in poly:
+        new_x = cx + (x - cx) * scale
+        new_y = cy + (y - cy) * scale
+        scaled_poly.append([new_x, new_y])
+    
+    return scaled_poly
+
+
 def _color_for_name(name: str) -> Tuple[float, float, float]:
     # Deterministic pastel
     h = abs(hash(name)) % 360
@@ -49,7 +87,8 @@ def _color_for_name(name: str) -> Tuple[float, float, float]:
 @click.option("--invert-y/--no-invert-y", default=False, show_default=True, help="Invert Y axis to match image pixel coordinates if needed.")
 @click.option("--alpha", default=0.35, show_default=True, help="Polygon fill alpha.")
 @click.option("--linewidth", default=1.0, show_default=True, help="Polygon edge line width.")
-def main(json_path: str, radar: str | None, out_path: str | None, labels: bool, invert_y: bool, alpha: float, linewidth: float):
+@click.option("--min-size", default=3.0, show_default=True, help="Minimum polygon size in pixels for visibility.")
+def main(json_path: str, radar: str | None, out_path: str | None, labels: bool, invert_y: bool, alpha: float, linewidth: float, min_size: float):
     data = _load_output(json_path)
     items = data.get("callouts", [])
     polys = [it.get("polygon_2d") or [] for it in items]

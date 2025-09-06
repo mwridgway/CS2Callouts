@@ -301,7 +301,7 @@ def parse_callout_models(search_root: Path) -> List[Dict[str, Any]]:
         current_entity = {}
         
         def flush_block():
-            if (current_entity.get('classname') == 'env_cs_place' and 
+            if (current_entity.get('classname') == 'env_cs_place' and  
                 current_entity.get('model')):
                 
                 result = {

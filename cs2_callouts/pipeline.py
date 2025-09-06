@@ -126,12 +126,26 @@ def choose_order_auto(callouts: List[Callout], vcache: Dict[str, np.ndarray], li
         return ROTATION_CANDIDATES[0]
     return choose_global_order(samples, limit=limit)
 
-
 def process_callouts(
     callouts: List[Callout],
     models_root: str | Path,
     rotation_order: str = "auto",
 ) -> Dict:
+    """
+    Processes a list of callouts by applying model transformations and extracting geometric information.
+
+    Args:
+        callouts (List[Callout]): A list of Callout objects containing model and transformation data.
+        models_root (str | Path): Path to the root directory containing model files.
+        rotation_order (str, optional): The rotation order to use for transformations. Defaults to "auto".
+
+    Returns:
+        Dict: A dictionary containing:
+            - "rotation_order": The rotation order used.
+            - "count": Number of successfully processed callouts.
+            - "missing_models": List of callouts with missing models and their resolved file paths.
+            - "callouts": List of processed callout records with geometric and source information.
+    """
     index = build_model_index(models_root)
     vcache = load_vertices_cache(callouts, index)
     order = rotation_order

@@ -125,6 +125,16 @@ def polygon_area(poly: np.ndarray) -> float:
 
 
 def bbox2d(points: np.ndarray) -> Tuple[float, float, float, float]:
+    """
+    Calculates the axis-aligned bounding box for a set of 2D points.
+
+    Args:
+        points (np.ndarray): An array of shape (N, 2) representing N 2D points.
+
+    Returns:
+        Tuple[float, float, float, float]: A tuple (min_x, min_y, max_x, max_y) representing
+        the coordinates of the bounding box. If points is empty, returns (0.0, 0.0, 0.0, 0.0).
+    """
     if len(points) == 0:
         return (0.0, 0.0, 0.0, 0.0)
     mn = points.min(axis=0)
