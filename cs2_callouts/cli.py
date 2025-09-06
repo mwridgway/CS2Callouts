@@ -82,7 +82,9 @@ def extract(vpk_path: str, map_name: str, out_root: str, gltf_format: str):
 @click.option("--models-root", type=click.Path(exists=True, file_okay=False), default="export/models", show_default=True, help="Root folder containing exported GLB/GLTF models.")
 @click.option("--out", "out_path", type=click.Path(), default=None, help="Output JSON path.")
 @click.option("--rotation-order", type=click.Choice(["auto", "rz_rx_ry", "ry_rx_rz", "rz_ry_rx"], case_sensitive=False), default="auto", show_default=True)
-def process(map_name: str, callouts_json: str | None, models_root: str, out_path: str | None, rotation_order: str):
+@click.option("--projection", "projection_method", type=click.Choice(["top_down", "alpha_shape", "convex_hull"], case_sensitive=False), default="top_down", show_default=True, help="2D projection method for radar visualization.")
+@click.option("--global-scale-multiplier", "global_scale_multiplier", type=float, default=1.0, show_default=True, help="Global multiplier applied to all polygon dimensions (e.g., 2.0 for 2x scaling).")
+def process(map_name: str, callouts_json: str | None, models_root: str, out_path: str | None, rotation_order: str, projection_method: str, global_scale_multiplier: float):
     """Process extracted callouts into 2D polygon data."""
     if callouts_json is None:
         callouts_json = str(Path("export") / "maps" / map_name / "report" / "callouts_found.json")
@@ -94,7 +96,7 @@ def process(map_name: str, callouts_json: str | None, models_root: str, out_path
         click.echo(f"No callouts found in {callouts_json}", err=True)
         sys.exit(1)
 
-    data = process_callouts(callouts, models_root=models_root, rotation_order=rotation_order)
+    data = process_callouts(callouts, models_root=models_root, rotation_order=rotation_order, projection_method=projection_method, global_scale_multiplier=global_scale_multiplier)
     write_json(data, out_path, pretty=True)
     click.echo(f"Wrote {out_path} with {data['count']} callouts. Rotation order: {data['rotation_order']}")
     if data.get("missing_models"):
@@ -105,7 +107,9 @@ def process(map_name: str, callouts_json: str | None, models_root: str, out_path
 @click.option("--map", "map_name", default="de_mirage", help="Map name for full pipeline")
 @click.option("--vpk-path", default="", help="Path to CS2 VPK file (auto-detected if not provided)")
 @click.option("--gltf-format", type=click.Choice(["glb", "gltf"]), default="glb", help="GLTF export format")
-def pipeline(map_name: str, vpk_path: str, gltf_format: str):
+@click.option("--projection", "projection_method", type=click.Choice(["top_down", "alpha_shape", "convex_hull"], case_sensitive=False), default="top_down", show_default=True, help="2D projection method for radar visualization.")
+@click.option("--global-scale-multiplier", "global_scale_multiplier", type=float, default=1.0, show_default=True, help="Global multiplier applied to all polygon dimensions (e.g., 2.0 for 2x scaling).")
+def pipeline(map_name: str, vpk_path: str, gltf_format: str, projection_method: str, global_scale_multiplier: float):
     """Run the complete extraction and processing pipeline."""
     click.echo(f"Running complete pipeline for {map_name}...")
     
@@ -131,7 +135,7 @@ def pipeline(map_name: str, vpk_path: str, gltf_format: str):
     # Step 2: Process
     click.echo("Step 2: Processing polygons...")
     try:
-        result = ctx.invoke(process, map_name=map_name, callouts_json=None, models_root="export/models", out_path=None, rotation_order="auto")
+        result = ctx.invoke(process, map_name=map_name, callouts_json=None, models_root="export/models", out_path=None, rotation_order="auto", projection_method=projection_method, global_scale_multiplier=global_scale_multiplier)
         if result and result != 0:
             click.echo("❌ Processing failed.")
             return result
@@ -328,7 +332,10 @@ def visualize(json_path: str, radar: str, map_data: str, out_path: str, labels: 
             with open(metadata_file, 'r') as f:
                 all_metadata = json.load(f)
                 # Extract map name from JSON path (e.g., "de_mirage_callouts.json" -> "de_mirage")
-                map_name = Path(json_path).stem.replace('_callouts', '')
+                # Handle variations like "de_mirage_callouts_2x.json" -> "de_mirage"
+                map_name = Path(json_path).stem
+                if '_callouts' in map_name:
+                    map_name = map_name.split('_callouts')[0]
                 map_metadata = all_metadata.get(map_name)
                 if map_metadata:
                     click.echo(f"Using map metadata for {map_name}: scale={map_metadata['scale']}, pos_x={map_metadata['pos_x']}, pos_y={map_metadata['pos_y']}")

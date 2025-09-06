@@ -1,0 +1,108 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "CS2 Callouts: Enhanced Pipeline (Detailed)",
+            "type": "shell",
+            "command": "python",
+            "args": ["-m", "cs2_callouts", "pipeline", "--map", "de_mirage", "--projection", "top_down"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "detail": "Extract callouts with enhanced 2D projection from full 3D models"
+        },
+        {
+            "label": "CS2 Callouts: Alpha Shape Pipeline",
+            "type": "shell",
+            "command": "python",
+            "args": ["-m", "cs2_callouts", "pipeline", "--map", "de_mirage", "--projection", "alpha_shape"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Extract callouts with concave hull projection for maximum detail"
+        },
+        {
+            "label": "CS2 Callouts: Generate Enhanced Radar Visualization",
+            "type": "shell", 
+            "command": "python",
+            "args": [
+                "-m", "cs2_callouts", "visualize",
+                "--json", "out/de_mirage_callouts.json",
+                "--radar", "C:\\Users\\mwrid\\.awpy\\maps\\de_mirage.png",
+                "--map-data", "map-data.json", 
+                "--out", "out/enhanced_radar_overlay.png",
+                "--alpha", "0.6", "--linewidth", "2.0", "--labels"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Generate radar overlay with enhanced 2D projection",
+            "dependsOn": "CS2 Callouts: Enhanced Pipeline (Detailed)"
+        },
+        {
+            "label": "CS2 Callouts: Compare Projection Methods",
+            "type": "shell",
+            "command": "python",
+            "args": ["compare_projections.py"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Compare different 2D projection methods"
+        },
+        {
+            "label": "CS2 Callouts: Clean All",
+            "type": "shell",
+            "command": "python", 
+            "args": ["-m", "cs2_callouts", "clean"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Clean all generated files and caches"
+        },
+        {
+            "label": "Install Python Dependencies",
+            "type": "shell",
+            "command": "pip",
+            "args": ["install", "-e", "."],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Install CS2 Callouts package in development mode"
+        }
+    ]
+}

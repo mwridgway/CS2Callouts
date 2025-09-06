@@ -7,6 +7,8 @@ Advanced tool for extracting Counter-Strike 2 callout data with precise radar po
 - Extracts `env_cs_place` callout entities from CS2's multi-VPK format
 - Exports referenced `.vmdl` models to GLB/GLTF format  
 - Transforms local-space vertices into world-space and projects to 2D polygons
+- **NEW**: Individual physics properties extraction from GLB models
+- **NEW**: Global scale multiplier for tactical area customization
 - **NEW**: Full awpy ecosystem compatibility with precise radar coordinate transformations
 - **NEW**: Beautiful radar overlay visualizations with perfect alignment
 
@@ -33,7 +35,7 @@ python -m cs2_callouts pipeline --map de_mirage
 # Generate radar overlay with precise positioning (requires awpy map data)
 python -m cs2_callouts visualize --json out/de_mirage_callouts.json \
   --radar "path/to/de_mirage.png" \
-  --map-data "path/to/map-data.json" \
+  --map-data "path/to/awpy/map-data.json" \
   --out "out/de_mirage_radar_overlay.png"
 ```
 
@@ -54,18 +56,31 @@ python -m cs2_callouts extract --map de_mirage --vpk-path "C:\Path\To\pak01_dir.
 #### Step 2: Generate Polygon Data
 
 ```bash
-# Process extracted data into 2D polygons with coordinate transformations
-python -m cs2_callouts process --map de_mirage
+# Process extracted data into enhanced 2D polygons from full 3D models
+python -m cs2_callouts process --map de_mirage --projection top_down
+
+# With individual physics-based scaling (uses GLB physics properties)
+python -m cs2_callouts process --map de_mirage --projection top_down
+
+# With global scale multiplier for larger tactical areas (2x size)
+python -m cs2_callouts process --map de_mirage --global-scale-multiplier 2.0
+
+# Custom projection methods for different analysis needs
+python -m cs2_callouts process --map de_mirage --projection alpha_shape
+python -m cs2_callouts process --map de_mirage --projection convex_hull
 ```
 
-#### Step 3: Visualize with Radar Overlay
+#### Step 3: Visualize with Enhanced Radar Overlay
 
 ```bash
-# Generate beautiful radar visualization with precise awpy coordinate alignment
+# Unix/Linux/macOS (with line continuation)
 python -m cs2_callouts visualize --json out/de_mirage_callouts.json \
   --radar "C:\Users\{username}\.awpy\maps\de_mirage.png" \
   --map-data "C:\Users\{username}\.awpy\maps\map-data.json" \
   --out "out/de_mirage_radar.png"
+
+# PowerShell (single line)
+python -m cs2_callouts visualize --json out/de_mirage_callouts.json --radar "C:\Users\{username}\.awpy\maps\de_mirage.png" --map-data "C:\Users\{username}\.awpy\maps\map-data.json" --out "out/de_mirage_radar.png"
 ```
 
 ### Option 3: Legacy PowerShell Scripts (Archived)
@@ -93,6 +108,7 @@ python -m cs2_callouts check-env                 # Check environment variables
 
 # Complete workflows
 python -m cs2_callouts pipeline --map de_mirage  # Extract + Process + Validate
+python -m cs2_callouts pipeline --map de_mirage --global-scale-multiplier 2.0  # With 2x scaling
 python -m cs2_callouts run-map --map de_dust2    # Legacy equivalent
 
 # Cleanup and maintenance  
@@ -133,12 +149,15 @@ cs2-callouts --map de_mirage
 - **Robust Entity Discovery**: Automatically finds entities in nested directory structures
 - **Complete Model Export**: 23/23 callouts extracted with zero missing models
 - **Smart Physics Mesh Detection**: Prefers `*_physics.glb` meshes for solid geometry
+- **Individual Physics Properties**: Extracts unique Scale, Global Scale, and Rotation per callout model
+- **Tactical Area Scaling**: Global scale multiplier for customizable callout area sizes
 
 ### 🗺️ Radar Integration & Visualization
 - **Perfect awpy Compatibility**: Seamless integration with the CS analysis ecosystem
 - **Precise Coordinate Transformation**: Converts game coordinates to radar pixel coordinates
 - **Beautiful Radar Overlays**: Generates publication-ready visualizations
 - **Automatic Alignment**: No manual positioning required - everything just works
+- **Physics-Based Polygon Scaling**: Uses actual GLB model dimensions for accurate tactical areas
 
 ### 🛠️ Developer Experience
 - **Cross-Platform**: Works on Windows, Linux, and macOS
@@ -151,6 +170,65 @@ cs2-callouts --map de_mirage
 - **GLB/GLTF Models**: 3D model exports for visualization
 - **Radar PNG**: High-quality overlay images for presentations
 - **UTF-8 BOM Tolerance**: Handles various text encodings automatically
+
+## Advanced Features
+
+### Individual Physics Properties
+
+Each callout model contains unique physics properties extracted from GLB transformation matrices:
+
+```bash
+# View physics properties for each callout
+python -c "
+import json
+with open('out/de_mirage_callouts.json', 'r') as f:
+    data = json.load(f)
+    for callout in data['callouts'][:3]:
+        props = callout['physics_properties']
+        print(f\"{callout['name']}: Global Scale {props['global_scale'][:2]}\")
+"
+```
+
+**Sample Output**:
+```
+Scaffolding: Global Scale [5.08, 8.74]
+Apartments: Global Scale [26.70, 11.23]  
+House: Global Scale [20.83, 7.92]
+```
+
+Each callout has different dimensions based on its actual 3D model, ensuring tactical areas match gameplay reality.
+
+### Global Scale Multiplier
+
+Uniformly scale all callout areas while preserving individual proportions:
+
+```bash
+# Standard size (1x)
+python -m cs2_callouts process --map de_mirage --global-scale-multiplier 1.0
+
+# Double size for training analysis (2x)
+python -m cs2_callouts process --map de_mirage --global-scale-multiplier 2.0
+
+# Half size for competitive analysis (0.5x)
+python -m cs2_callouts process --map de_mirage --global-scale-multiplier 0.5
+
+# Custom scaling for specific use cases
+python -m cs2_callouts process --map de_mirage --global-scale-multiplier 1.5
+```
+
+**Use Cases**:
+- **Training Mode**: 2x scaling for larger, more visible tactical areas
+- **Competitive Analysis**: 0.5x scaling for precise positioning  
+- **Screen Adaptation**: Custom scaling for different display sizes
+- **Tactical Planning**: Adjust area coverage for different strategies
+
+### Processing Options
+
+| Option | Description | Example Values |
+|--------|-------------|---------------|
+| `--global-scale-multiplier` | Uniform scaling factor | `1.0` (default), `2.0` (double), `0.5` (half) |
+| `--projection` | 2D projection method | `top_down`, `alpha_shape`, `convex_hull` |
+| `--rotation-order` | Transformation order | `auto`, `rz_rx_ry`, `ry_rx_rz` |
 
 ## Radar Visualization
 
@@ -169,7 +247,7 @@ python -m cs2_callouts visualize --json out/de_mirage_callouts.json \
 # Custom styling options
 python -m cs2_callouts visualize --json out/de_mirage_callouts.json \
   --radar "path/to/radar.png" \
-  --map-data "path/to/map-data.json" \
+  --map-data "path/to/awpy/map-data.json" \
   --alpha 0.6 \
   --linewidth 2.0 \
   --no-labels \
@@ -227,8 +305,10 @@ export/maps/<map>/vrf/entities/maps/<map>/entities/default_ents.vents
 8. **🧮 Advanced Mathematics** - Multiple rotation order detection and SRT transformations
 9. **🔧 Robust Error Handling** - Comprehensive validation and graceful error recovery
 10. **🎨 Beautiful Visualizations** - Publication-ready radar overlays with precise alignment
+11. **⚙️ Individual Physics Properties** - Extracts unique Scale, Global Scale, and Rotation per GLB model
+12. **📏 Global Scale Multiplier** - Tactical area customization with uniform scaling while preserving proportions
 
-> **Migration Note**: All PowerShell scripts (`.ps1`) have been converted to Python CLI commands and moved to the `archive/` folder. See [MIGRATION.md](MIGRATION.md) for detailed conversion guide. Archived scripts are deprecated and will be removed in a future version.
+> **Migration Note**: All PowerShell scripts (`.ps1`) have been converted to Python CLI commands and moved to the `archive/` folder. See the [Migration Guide](docs/MIGRATION.md) for detailed conversion information. Archived scripts are deprecated and will be removed in a future version.
 
 ### ✅ Current Status: Complete Success
 
@@ -239,13 +319,17 @@ export/maps/<map>/vrf/entities/maps/<map>/entities/default_ents.vents
 | **Phase 3: Geometric Extraction** | ✅ Complete | GLB format with physics mesh preference | **Modern 3D format pipeline** |
 | **Phase 4: World Transformation** | ✅ Complete | SRT with auto rotation detection | **Multiple rotation order support** |
 | **Phase 5: Radar Integration** | ✅ **NEW** | awpy coordinate transformation system | **Perfect pixel-level alignment** |
+| **Phase 6: Physics Properties** | ✅ **NEW** | Individual GLB transformation extraction | **Per-model Scale, Global Scale, Rotation** |
+| **Phase 7: Tactical Scaling** | ✅ **NEW** | Global scale multiplier system | **Customizable area sizes with preserved proportions** |
 
 ### 🎯 Validation Results: Perfect Extraction
 
 - **✅ 23/23 callouts extracted** from de_mirage's multi-VPK format
 - **✅ 23/23 models exported** as GLB files with verification
 - **✅ 23/23 polygons generated** with precise 2D coordinates  
+- **✅ 23/23 physics properties extracted** with individual Scale, Global Scale, and Rotation
 - **✅ Perfect radar alignment** using awpy coordinate transformations
+- **✅ Global scaling system** with preserved individual proportions
 - **✅ Zero missing entities** - complete coverage achieved
 - **✅ Production ready** for CS2 analysis workflows
 
@@ -318,7 +402,15 @@ To build a similar tool from scratch, a developer would need expertise across mu
 - 📸 **Documentation with examples** - Visual guides and integration examples
 - 🔧 **GitHub Actions CI/CD** - Automated builds and releases
 
-See **[TODO.md](TODO.md)** for the complete development roadmap with detailed implementation plans.
+## 📚 Documentation
+
+Detailed technical documentation is available in the [`docs/`](docs/) folder:
+
+- **[Development Roadmap](docs/TODO.md)** - Future enhancements and contribution opportunities
+- **[Migration Guide](docs/MIGRATION.md)** - PowerShell to Python conversion details
+- **[Technical Deep Dives](docs/)** - 3D processing, polygon extraction, and visualization details
+
+See the [Documentation Index](docs/README.md) for a complete guide to all available documentation.
 
 ---
 
@@ -337,6 +429,8 @@ CS2Callouts/
 ├── out/                   # Generated polygon JSON files
 ├── export/                # Extracted VPK data and models
 ├── tools/                 # Auto-downloaded VRF CLI
+├── docs/                  # Detailed documentation and guides
+├── debug/                 # Investigation & debug scripts (development artifacts)
 ├── archive/               # Deprecated PowerShell scripts
 ├── requirements.txt       # Python dependencies
 ├── pyproject.toml        # Package configuration  
@@ -352,6 +446,7 @@ Remove generated outputs, caches, and tools using the Python CLI:
 python -m cs2_callouts clean --dry-run
 
 # Remove all generated files (export/, out/, caches, tools/)
+# Note: debug/ folder with investigation scripts is preserved
 python -m cs2_callouts clean
 
 # Keep tools to avoid re-downloading VRF CLI

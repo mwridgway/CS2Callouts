@@ -9,6 +9,7 @@
 - [x] Radar overlay visualization
 - [x] Cross-platform Python CLI
 - [x] Documentation complete
+- [x] **BONUS: Full 3D polygon data extraction** (physics mesh integration)
 
 ---
 

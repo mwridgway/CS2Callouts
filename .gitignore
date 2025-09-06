@@ -1,6 +1,7 @@
 export/*
 tools/*
 out/*
+debug/*
 */__pycache__/*
 temp_list/*
 temp/*
