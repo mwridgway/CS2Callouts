@@ -1,0 +1,6 @@
+# Archive folder - contains deprecated PowerShell scripts
+# These are tracked for reference but will be removed in a future version
+!/archive/
+archive/*
+!archive/README.md
+!archive/*.ps1

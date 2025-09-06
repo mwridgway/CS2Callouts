@@ -17,12 +17,15 @@ dependencies = [
   "numpy",
   "trimesh",
   "click",
-  "matplotlib"
+  "matplotlib",
+  "requests"
 ]
 
 [project.scripts]
-cs2-callouts = "cs2_callouts.cli:main"
+cs2-callouts = "cs2_callouts.cli:cli"
 cs2-callouts-viz = "cs2_callouts.visualize:main"
+cs2-callouts-clean = "cs2_callouts.cli:clean"
+cs2-callouts-setup = "cs2_callouts.cli:setup"
 
 [tool.setuptools]
 packages = ["cs2_callouts"]

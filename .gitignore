@@ -1,3 +1,6 @@
 export/*
 tools/*
+out/*
 */__pycache__/*
+temp_list/*
+temp/*
