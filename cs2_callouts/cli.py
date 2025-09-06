@@ -77,30 +77,244 @@ def extract(vpk_path: str, map_name: str, out_root: str, gltf_format: str):
 
 
 @cli.command()
-@click.option("--map", "map_name", default="de_mirage", show_default=True, help="Map name used for path defaults.")
-@click.option("--callouts-json", "callouts_json", type=click.Path(exists=True), default=None, help="Path to callouts_found.json from the extraction step.")
+@click.option("--map", "map_name", default="all", show_default=True, help="Map name to process, or 'all' to process all available maps.")
+@click.option("--callouts-json", "callouts_json", type=click.Path(exists=True), default=None, help="Path to callouts_found.json from the extraction step (only used for single map).")
 @click.option("--models-root", type=click.Path(exists=True, file_okay=False), default="export/models", show_default=True, help="Root folder containing exported GLB/GLTF models.")
-@click.option("--out", "out_path", type=click.Path(), default=None, help="Output JSON path.")
+@click.option("--out", "out_path", type=click.Path(), default=None, help="Output JSON path (only used for single map).")
 @click.option("--rotation-order", type=click.Choice(["auto", "rz_rx_ry", "ry_rx_rz", "rz_ry_rx"], case_sensitive=False), default="auto", show_default=True)
 @click.option("--projection", "projection_method", type=click.Choice(["top_down", "alpha_shape", "convex_hull"], case_sensitive=False), default="top_down", show_default=True, help="2D projection method for radar visualization.")
 @click.option("--global-scale-multiplier", "global_scale_multiplier", type=float, default=1.0, show_default=True, help="Global multiplier applied to all polygon dimensions (e.g., 2.0 for 2x scaling).")
-def process(map_name: str, callouts_json: str | None, models_root: str, out_path: str | None, rotation_order: str, projection_method: str, global_scale_multiplier: float):
-    """Process extracted callouts into 2D polygon data."""
+@click.option("--auto-extract", is_flag=True, default=False, help="Automatically extract missing maps before processing (requires CS2 VPK files).")
+@click.option("--auto-visualize", is_flag=True, default=False, help="Automatically generate radar visualizations after processing using awpy radar images.")
+@click.option("--vpk-path", default="", help="Path to CS2 VPK file for auto-extraction (auto-detected if not provided).")
+def process(map_name: str, callouts_json: str | None, models_root: str, out_path: str | None, rotation_order: str, projection_method: str, global_scale_multiplier: float, auto_extract: bool, auto_visualize: bool, vpk_path: str):
+    """Process extracted callouts into 2D polygon data with optional extraction and visualization."""
+    
+    if map_name.lower() == "all":
+        # Process all available maps with enhanced functionality
+        _process_all_maps_enhanced(models_root, rotation_order, projection_method, global_scale_multiplier, auto_extract, auto_visualize, vpk_path)
+    else:
+        # Process single map with enhanced functionality  
+        _process_single_map_enhanced(map_name, callouts_json, models_root, out_path, rotation_order, projection_method, global_scale_multiplier, auto_extract, auto_visualize, vpk_path)
+
+
+def _get_radar_path(map_name: str) -> Path | None:
+    """Get the awpy radar image path for a map (cross-platform)"""
+    home = Path.home()
+    radar_path = home / ".awpy" / "maps" / f"{map_name}.png"
+    return radar_path if radar_path.exists() else None
+
+
+def _get_active_duty_maps() -> list[str]:
+    """Get the list of CS2 active duty maps"""
+    return [
+        "de_ancient",
+        "de_anubis", 
+        "de_dust2",
+        "de_inferno",
+        "de_mirage",
+        "de_nuke",
+        "de_overpass",
+        "de_vertigo"
+    ]
+
+
+def _discover_available_maps(models_root: str) -> list[str]:
+    """Discover all available maps by looking for callouts_found.json files"""
+    export_path = Path("export/maps")
+    available_maps = []
+    
+    if export_path.exists():
+        for map_dir in export_path.iterdir():
+            if map_dir.is_dir():
+                callouts_file = map_dir / "report" / "callouts_found.json"
+                if callouts_file.exists():
+                    available_maps.append(map_dir.name)
+    
+    return sorted(available_maps)
+
+
+def _discover_maps_to_process() -> tuple[list[str], list[str]]:
+    """
+    Discover which maps should be processed and which need extraction.
+    Returns: (available_maps, missing_maps)
+    """
+    active_duty_maps = _get_active_duty_maps()
+    available_maps = _discover_available_maps("export/models")
+    
+    # Find which active duty maps are available vs missing
+    available_active_duty = [m for m in active_duty_maps if m in available_maps]
+    missing_active_duty = [m for m in active_duty_maps if m not in available_maps]
+    
+    return available_active_duty, missing_active_duty
+
+
+def _process_single_map_enhanced(map_name: str, callouts_json: str | None, models_root: str, out_path: str | None, rotation_order: str, projection_method: str, global_scale_multiplier: float, auto_extract: bool, auto_visualize: bool, vpk_path: str):
+    """Enhanced single map processing with auto-extraction and auto-visualization"""
+    
+    # Step 1: Auto-extract if needed and requested
+    if auto_extract:
+        callouts_file = Path("export") / "maps" / map_name / "report" / "callouts_found.json"
+        if not callouts_file.exists():
+            click.echo(f"🔄 Auto-extracting {map_name}...")
+            ctx = click.get_current_context()
+            try:
+                result = ctx.invoke(extract, vpk_path=vpk_path, map_name=map_name, out_root="export", gltf_format="glb")
+                if result and result != 0:
+                    click.echo(f"❌ Auto-extraction failed for {map_name}")
+                    return False
+            except Exception as e:
+                click.echo(f"❌ Auto-extraction failed for {map_name}: {e}")
+                return False
+    
+    # Step 2: Process the map using the legacy function
     if callouts_json is None:
         callouts_json = str(Path("export") / "maps" / map_name / "report" / "callouts_found.json")
     if out_path is None:
         out_path = str(Path("out") / f"{map_name}_callouts.json")
 
+    if not Path(callouts_json).exists():
+        click.echo(f"❌ No callouts file found for {map_name}: {callouts_json}", err=True)
+        return False
+
     callouts = read_callouts_json(callouts_json)
     if not callouts:
-        click.echo(f"No callouts found in {callouts_json}", err=True)
-        sys.exit(1)
+        click.echo(f"❌ No callouts found in {callouts_json}", err=True)
+        return False
 
+    click.echo(f"🔄 Processing {map_name}...")
     data = process_callouts(callouts, models_root=models_root, rotation_order=rotation_order, projection_method=projection_method, global_scale_multiplier=global_scale_multiplier)
     write_json(data, out_path, pretty=True)
-    click.echo(f"Wrote {out_path} with {data['count']} callouts. Rotation order: {data['rotation_order']}")
+    click.echo(f"✅ Wrote {out_path} with {data['count']} callouts. Rotation order: {data['rotation_order']}")
     if data.get("missing_models"):
-        click.echo(f"Missing models: {len(data['missing_models'])}")
+        click.echo(f"⚠️  Missing models: {len(data['missing_models'])}")
+    
+    # Step 3: Auto-visualize if requested
+    if auto_visualize:
+        click.echo(f"🎨 Auto-generating visualization for {map_name}...")
+        
+        json_path = Path(out_path)
+        
+        # Try to find radar image
+        radar_path = _get_radar_path(map_name)
+        
+        # Generate visualization
+        viz_path = json_path.parent / f"{map_name}_radar.png"
+        
+        ctx = click.get_current_context()
+        try:
+            if radar_path and radar_path.exists():
+                click.echo(f"📡 Using radar image: {radar_path}")
+                ctx.invoke(visualize, json_path=str(json_path), radar=str(radar_path), map_data=None, out_path=str(viz_path), labels=True, invert_y=False, alpha=0.35, linewidth=1.0, min_size=3.0)
+                click.echo(f"✅ Generated radar visualization: {viz_path}")
+            else:
+                click.echo(f"⚠️  No radar image found for {map_name}, generating basic visualization...")
+                basic_viz_path = json_path.parent / f"{map_name}_basic.png"
+                ctx.invoke(visualize, json_path=str(json_path), radar=None, map_data=None, out_path=str(basic_viz_path), labels=True, invert_y=False, alpha=0.35, linewidth=1.0, min_size=3.0)
+                click.echo(f"✅ Generated basic visualization: {basic_viz_path}")
+        except Exception as e:
+            click.echo(f"⚠️  Visualization failed for {map_name}: {e}")
+    
+    return True
+
+
+def _process_all_maps_enhanced(models_root: str, rotation_order: str, projection_method: str, global_scale_multiplier: float, auto_extract: bool, auto_visualize: bool, vpk_path: str):
+    """Enhanced processing for all maps with auto-extraction and auto-visualization"""
+    
+    if auto_extract:
+        # Try to extract all missing active duty maps
+        click.echo("🔄 Auto-extracting missing maps...")
+        active_duty_maps = _get_active_duty_maps()
+        extracted_count = 0
+        
+        for map_name in active_duty_maps:
+            callouts_file = Path("export") / "maps" / map_name / "report" / "callouts_found.json"
+            if not callouts_file.exists():
+                click.echo(f"   Extracting {map_name}...")
+                ctx = click.get_current_context()
+                try:
+                    result = ctx.invoke(extract, vpk_path=vpk_path, map_name=map_name, out_root="export", gltf_format="glb")
+                    if not result or result == 0:
+                        extracted_count += 1
+                        click.echo(f"   ✅ {map_name}")
+                    else:
+                        click.echo(f"   ❌ {map_name} (failed)")
+                except Exception as e:
+                    click.echo(f"   ❌ {map_name} (error: {e})")
+        
+        if extracted_count > 0:
+            click.echo(f"✅ Auto-extracted {extracted_count} maps")
+        else:
+            click.echo("ℹ️  No maps needed extraction")
+    
+    # Process available maps
+    available_maps, missing_maps = _discover_maps_to_process()
+    
+    if not available_maps:
+        click.echo("❌ No maps available for processing after auto-extraction")
+        if missing_maps:
+            click.echo("⚠️  The following maps still need extraction:")
+            for map_name in missing_maps:
+                click.echo(f"   • {map_name}")
+        return
+    
+    click.echo(f"🔄 Processing {len(available_maps)} available maps...")
+    
+    # Ensure output directory exists
+    Path("out").mkdir(exist_ok=True)
+    
+    success_count = 0
+    failed_maps = []
+    visualization_count = 0
+    
+    for map_name in available_maps:
+        success = _process_single_map_enhanced(
+            map_name=map_name,
+            callouts_json=None,  # Use default path
+            models_root=models_root,
+            out_path=None,  # Use default path
+            rotation_order=rotation_order,
+            projection_method=projection_method,
+            global_scale_multiplier=global_scale_multiplier,
+            auto_extract=False,  # Already handled above
+            auto_visualize=auto_visualize,
+            vpk_path=vpk_path
+        )
+        
+        if success:
+            success_count += 1
+            if auto_visualize:
+                visualization_count += 1
+        else:
+            failed_maps.append(map_name)
+    
+    # Summary
+    click.echo()
+    click.echo(f"🎯 Processing complete:")
+    click.echo(f"   ✅ Successfully processed: {success_count}/{len(available_maps)} maps")
+    if auto_visualize:
+        click.echo(f"   🎨 Visualizations generated: {visualization_count} radar overlays")
+    if failed_maps:
+        click.echo(f"   ❌ Failed maps: {', '.join(failed_maps)}")
+    
+    if missing_maps and not auto_extract:
+        click.echo(f"   ⏳ Still need extraction: {len(missing_maps)} maps")
+        click.echo(f"      Use --auto-extract to automatically extract missing maps")
+    
+    # Show output files
+    click.echo(f"\n📁 Generated files:")
+    out_dir = Path("out")
+    for map_name in available_maps:
+        out_file = out_dir / f"{map_name}_callouts.json"
+        if out_file.exists():
+            size_kb = round(out_file.stat().st_size / 1024, 1)
+            click.echo(f"   📄 {out_file.name} ({size_kb} KB)")
+            
+            if auto_visualize:
+                radar_file = out_dir / f"{map_name}_radar.png"
+                if radar_file.exists():
+                    size_kb = round(radar_file.stat().st_size / 1024, 1)
+                    click.echo(f"   🎨 {radar_file.name} ({size_kb} KB)")
 
 
 @cli.command()

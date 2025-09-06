@@ -9,6 +9,7 @@ This folder contains detailed documentation for the CS2 Callout Polygon Extracti
 - **[MIGRATION.md](MIGRATION.md)** - PowerShell to Python migration guide
 
 ### Technical Deep Dives
+- **[SOURCE2_TRANSFORMATIONS.md](SOURCE2_TRANSFORMATIONS.md)** - Source 2 engine transformation system (Scale vs Global Scale)
 - **[3D_POLYGON_DATA.md](3D_POLYGON_DATA.md)** - 3D polygon extraction and processing
 - **[ENHANCED_2D_PROJECTION.md](ENHANCED_2D_PROJECTION.md)** - 2D projection methods and improvements
 - **[POLYGON_RENDERING.md](POLYGON_RENDERING.md)** - Polygon rendering and visualization
